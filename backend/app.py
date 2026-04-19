@@ -30,7 +30,7 @@ import random
 # ==================== APP SETUP ===============================
 
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests from React frontend
+CORS(app, resources={r"/*": {"origins": "https://your-vercel-frontend-url.vercel.app"}})  # Allow cross-origin requests from React frontend
 
 # In-memory storage for alerts (simple list)
 alerts = []
