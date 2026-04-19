@@ -1,0 +1,13 @@
+{
+  "python.defaultInterpreterPath": "C:\\Program Files\\Python310\\python.exe",
+  "python.analysis.extraPaths": [
+    "C:\\Program Files\\Python310\\Lib\\site-packages"
+  ],
+  "arduino.useArduinoCli": true,
+  "arduino.logLevel": "info",
+  "arduino.defaultBaudRate": 115200,
+  "C_Cpp.errorSquiggles": "disabled",
+  "files.associations": {
+    "*.ino": "cpp"
+  }
+}
