@@ -24,7 +24,7 @@ import StatusCards from './components/StatusCards';
 import AlertList from './components/AlertList';
 
 // Backend URL — adjust if your server runs on a different port
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://smarthelm-backend.onrender.com';
 
 export default function App() {
   // State: list of alerts fetched from the backend
