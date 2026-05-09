@@ -1,20 +1,19 @@
 /**
  * ============================================================
- * SmartHelm Dashboard — Main App
+ * SmartHelm v2.0 Dashboard — Main App
  * ============================================================
- * Agent 4: Frontend Developer
  *
- * This is the main entry point for the React dashboard.
- * It polls the Flask backend every 2 seconds for new alerts,
- * and renders Navbar, StatusCards, and AlertList components.
+ * UPGRADE: Multi-sensor fusion display (horn + crash + alcohol).
  *
  * Features:
- *   - Dual audio: short beep for standard horns, loud siren for >90 dB / SOS
+ *   - Dual audio: short beep for horn, loud siren for crash/SOS
  *   - Visual emergency flash on new alert
- *   - Crisis Mode: header flashes red for SOS / >95 dB alerts
+ *   - Crisis Mode: header flashes red for SOS / crash / high risk
  *   - Battery level tracking from helmet
  *   - Mute/Unmute toggle for audio
  *   - Emergency SOS trigger button
+ *   - Multi-type simulation (horn / crash / alcohol)
+ *   - Risk score display
  * ============================================================
  */
 
@@ -24,53 +23,33 @@ import StatusCards from './components/StatusCards';
 import AlertList from './components/AlertList';
 
 // Backend URL — adjust if your server runs on a different port
-const API_BASE = 'https://smarthelm-backend.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function App() {
-  // State: list of alerts fetched from the backend
   const [alerts, setAlerts] = useState([]);
-
-  // State: is the backend reachable?
   const [isOnline, setIsOnline] = useState(false);
-
-  // State: is audio muted?
   const [isMuted, setIsMuted] = useState(false);
-
-  // State: visual warning flash active?
   const [isFlashing, setIsFlashing] = useState(false);
-
-  // State: Crisis Mode (SOS or >95 dB detected)
   const [crisisMode, setCrisisMode] = useState(false);
-
-  // State: Latest battery level from helmet
   const [batteryLevel, setBatteryLevel] = useState(null);
-
-  // State: SOS active from backend
   const [sosActive, setSosActive] = useState(false);
 
-  // Ref: track the previous alert count to detect new alerts
+  // Sensor stats from backend
+  const [sensorStats, setSensorStats] = useState({
+    horn_count: 0, crash_count: 0, alcohol_count: 0
+  });
+
   const prevAlertCountRef = useRef(0);
-
-  // Ref: Audio elements — two distinct sounds
-  const beepRef = useRef(null);   // Short beep for standard horns
-  const sirenRef = useRef(null);  // Loud siren for critical alerts (>90 dB)
-
-  // Ref: flash timeout for cleanup
+  const beepRef = useRef(null);
+  const sirenRef = useRef(null);
   const flashTimeoutRef = useRef(null);
-
-  // Ref: crisis mode timeout for cleanup
   const crisisTimeoutRef = useRef(null);
 
-  /**
-   * Play the appropriate sound based on alert intensity.
-   * - Standard horn (<90 dB): short beep
-   * - Critical alert (>=90 dB) or SOS: loud siren
-   */
-  const playSound = useCallback((intensity, isSOS = false) => {
+  const playSound = useCallback((intensity, isSOS = false, type = 'horn') => {
     if (isMuted) return;
-
     try {
-      const audioEl = (intensity >= 90 || isSOS) ? sirenRef.current : beepRef.current;
+      const useSiren = intensity >= 90 || isSOS || type === 'crash';
+      const audioEl = useSiren ? sirenRef.current : beepRef.current;
       if (audioEl) {
         audioEl.currentTime = 0;
         audioEl.play().catch(() => {
@@ -82,41 +61,18 @@ export default function App() {
     }
   }, [isMuted]);
 
-  /**
-   * Trigger the visual emergency flash (2 seconds).
-   */
   const triggerFlash = useCallback(() => {
     setIsFlashing(true);
-
-    if (flashTimeoutRef.current) {
-      clearTimeout(flashTimeoutRef.current);
-    }
-
-    flashTimeoutRef.current = setTimeout(() => {
-      setIsFlashing(false);
-    }, 2000);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => setIsFlashing(false), 2000);
   }, []);
 
-  /**
-   * Activate Crisis Mode — header flashes red for 5 seconds.
-   * Triggered when intensity > 95 dB or SOS is received.
-   */
   const activateCrisisMode = useCallback(() => {
     setCrisisMode(true);
-
-    if (crisisTimeoutRef.current) {
-      clearTimeout(crisisTimeoutRef.current);
-    }
-
-    crisisTimeoutRef.current = setTimeout(() => {
-      setCrisisMode(false);
-    }, 5000);
+    if (crisisTimeoutRef.current) clearTimeout(crisisTimeoutRef.current);
+    crisisTimeoutRef.current = setTimeout(() => setCrisisMode(false), 5000);
   }, []);
 
-  /**
-   * Fetch all alerts from the Flask backend.
-   * Called on mount and every 2 seconds via polling.
-   */
   const fetchAlerts = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/alerts`);
@@ -126,29 +82,30 @@ export default function App() {
         setAlerts(newAlerts);
         setIsOnline(true);
 
-        // Update battery level from backend
         if (data.battery_level !== null && data.battery_level !== undefined) {
           setBatteryLevel(data.battery_level);
         }
 
-        // Update SOS status
         setSosActive(data.sos_active || false);
 
-        // Detect if new alerts arrived
+        // Update sensor stats
+        setSensorStats({
+          horn_count: data.horn_count || 0,
+          crash_count: data.crash_count || 0,
+          alcohol_count: data.alcohol_count || 0,
+        });
+
+        // Detect new alerts
         if (newAlerts.length > prevAlertCountRef.current && prevAlertCountRef.current > 0) {
-          // Find the newest alert to determine which sound to play
-          const newestAlert = newAlerts[0]; // alerts are reversed, newest first
+          const newestAlert = newAlerts[0];
           const intensity = newestAlert?.intensity_db || 0;
           const isSOS = newestAlert?.is_sos || newestAlert?.type === 'SOS';
+          const type = newestAlert?.type || 'horn';
 
-          // Play appropriate sound
-          playSound(intensity, isSOS);
-
-          // Always trigger standard flash
+          playSound(intensity, isSOS, type);
           triggerFlash();
 
-          // Activate Crisis Mode for critical alerts
-          if (intensity >= 95 || isSOS) {
+          if (intensity >= 95 || isSOS || type === 'crash') {
             activateCrisisMode();
           }
         }
@@ -163,21 +120,20 @@ export default function App() {
   }, [playSound, triggerFlash, activateCrisisMode]);
 
   /**
-   * Send a POST to /simulate to create a fake horn alert.
-   * Useful for testing without ESP32 hardware.
+   * Simulate alert — supports type param (horn, crash, alcohol).
    */
-  const simulateAlert = async () => {
+  const simulateAlert = async (type = null) => {
     try {
-      await fetch(`${API_BASE}/simulate`, { method: 'POST' });
+      const url = type
+        ? `${API_BASE}/simulate?type=${type}`
+        : `${API_BASE}/simulate`;
+      await fetch(url, { method: 'POST' });
       fetchAlerts();
     } catch {
       console.error('Failed to simulate alert');
     }
   };
 
-  /**
-   * Send a POST to /emergency to trigger an SOS distress signal.
-   */
   const triggerSOS = async () => {
     try {
       await fetch(`${API_BASE}/emergency`, {
@@ -196,10 +152,6 @@ export default function App() {
     }
   };
 
-  /**
-   * Start polling on component mount.
-   * Polls every 2 seconds for real-time updates.
-   */
   useEffect(() => {
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 2000);
@@ -212,14 +164,14 @@ export default function App() {
 
   return (
     <>
-      {/* Hidden audio elements — two distinct sounds */}
+      {/* Hidden audio elements */}
       <audio ref={beepRef} src="/beep.wav" preload="auto" />
       <audio ref={sirenRef} src="/siren.wav" preload="auto" />
 
       {/* Emergency flash overlay */}
       <div className={`emergency-flash ${isFlashing ? 'emergency-flash--active' : ''}`} />
 
-      {/* Crisis mode overlay (stronger, longer flash for SOS / >95dB) */}
+      {/* Crisis mode overlay */}
       <div className={`crisis-overlay ${crisisMode ? 'crisis-overlay--active' : ''}`} />
 
       {/* Top Navigation Bar */}
@@ -233,7 +185,7 @@ export default function App() {
 
       {/* Main Dashboard Content */}
       <main className="dashboard">
-        {/* Page Header — flashes red in Crisis Mode */}
+        {/* Page Header */}
         <div className={`dashboard__header ${crisisMode ? 'dashboard__header--crisis' : ''}`}>
           <h1 className="dashboard__title">
             {crisisMode && <span className="crisis-icon">🚨 </span>}
@@ -243,20 +195,34 @@ export default function App() {
           <p className="dashboard__desc">
             {crisisMode
               ? '⚠️ CRITICAL ALERT DETECTED — Emergency contacts notified!'
-              : 'Real-time monitoring of horn detection events from SmartHelm devices.'
+              : 'Multi-sensor safety monitoring: Horn Detection · Crash Detection · Alcohol Detection'
             }
           </p>
         </div>
 
         {/* KPI Status Cards */}
-        <StatusCards alerts={alerts} isOnline={isOnline} batteryLevel={batteryLevel} />
+        <StatusCards
+          alerts={alerts}
+          isOnline={isOnline}
+          batteryLevel={batteryLevel}
+          sensorStats={sensorStats}
+        />
 
-        {/* Actions: Simulate + SOS + heading */}
+        {/* Actions: Simulate + SOS */}
         <div className="actions-bar">
           <h2 className="actions-bar__title">Alert History</h2>
           <div className="actions-bar__buttons">
-            <button className="btn btn--simulate" onClick={simulateAlert}>
-              🧪 Simulate Alert
+            <button className="btn btn--sim-horn" onClick={() => simulateAlert('horn')}>
+              📢 Sim Horn
+            </button>
+            <button className="btn btn--sim-crash" onClick={() => simulateAlert('crash')}>
+              💥 Sim Crash
+            </button>
+            <button className="btn btn--sim-alcohol" onClick={() => simulateAlert('alcohol')}>
+              🍺 Sim Alcohol
+            </button>
+            <button className="btn btn--simulate" onClick={() => simulateAlert()}>
+              🧪 Random
             </button>
             <button className="btn btn--sos" onClick={triggerSOS}>
               🆘 Trigger SOS

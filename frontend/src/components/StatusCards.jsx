@@ -1,27 +1,25 @@
 /**
- * StatusCards Component
- * Displays five KPI cards: Total Alerts, Avg Intensity, Devices, Battery, System Status.
- * The system status card features a heartbeat pulse animation when online.
- * Battery card shows real-time helmet charge level.
+ * StatusCards Component v2.0
+ * Displays six KPI cards: Total Alerts, Sensor Breakdown, Risk Level,
+ * Battery, Devices, System Status.
  */
 import { useState, useEffect, useRef } from 'react';
 
-export default function StatusCards({ alerts, isOnline, batteryLevel }) {
-  // Total alerts
+export default function StatusCards({ alerts, isOnline, batteryLevel, sensorStats }) {
   const totalAlerts = alerts.length;
 
   // SOS count
   const sosCount = alerts.filter(a => a.is_sos || a.type === 'SOS').length;
 
-  // Average intensity
-  const avgIntensity = totalAlerts > 0
-    ? (alerts.reduce((sum, a) => sum + (a.intensity_db || 0), 0) / totalAlerts).toFixed(1)
+  // Average risk score
+  const avgRisk = totalAlerts > 0
+    ? (alerts.reduce((sum, a) => sum + (a.risk_score || 0), 0) / totalAlerts).toFixed(0)
     : '—';
 
-  // Max intensity (peak)
-  const maxIntensity = totalAlerts > 0
-    ? Math.max(...alerts.map(a => a.intensity_db || 0)).toFixed(1)
-    : '—';
+  // Max risk
+  const maxRisk = totalAlerts > 0
+    ? Math.max(...alerts.map(a => a.risk_score || 0))
+    : 0;
 
   // Unique devices
   const devices = [...new Set(alerts.map(a => a.device_id))];
@@ -30,6 +28,10 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
   // Battery display
   const batteryDisplay = batteryLevel !== null && batteryLevel !== undefined ? batteryLevel : '—';
   const batteryColor = batteryLevel > 60 ? 'var(--accent-green)' : batteryLevel > 25 ? 'var(--accent-orange)' : 'var(--accent-red)';
+
+  // Risk color
+  const riskColor = maxRisk >= 70 ? 'var(--accent-red)' : maxRisk >= 30 ? 'var(--accent-orange)' : 'var(--accent-green)';
+  const riskLabel = maxRisk >= 70 ? 'Critical' : maxRisk >= 30 ? 'Warning' : 'Normal';
 
   // Live uptime counter
   const [uptime, setUptime] = useState(0);
@@ -61,21 +63,62 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
         </div>
         <div className="status-card__value">{totalAlerts}</div>
         <div className="status-card__sub">
-          {sosCount > 0 ? `${sosCount} SOS · ${totalAlerts - sosCount} Horn` : 'Horn events detected'}
+          {sosCount > 0 ? `${sosCount} SOS · ${totalAlerts - sosCount} Sensor` : 'Sensor events detected'}
         </div>
       </div>
 
-      {/* Card 2: Avg Intensity */}
+      {/* Card 2: Sensor Breakdown */}
       <div className="status-card status-card--intensity">
         <div className="status-card__header">
-          <span className="status-card__label">Avg Intensity</span>
+          <span className="status-card__label">Sensors</span>
           <div className="status-card__icon">📊</div>
         </div>
-        <div className="status-card__value">{avgIntensity}<span style={{ fontSize: '16px', fontWeight: 400 }}> dB</span></div>
-        <div className="status-card__sub">Peak: {maxIntensity} dB</div>
+        <div className="sensor-breakdown">
+          <div className="sensor-row">
+            <span className="sensor-row__icon">📢</span>
+            <span className="sensor-row__label">Horn</span>
+            <span className="sensor-row__count" style={{color: 'var(--accent-orange)'}}>{sensorStats.horn_count}</span>
+          </div>
+          <div className="sensor-row">
+            <span className="sensor-row__icon">💥</span>
+            <span className="sensor-row__label">Crash</span>
+            <span className="sensor-row__count" style={{color: 'var(--accent-red)'}}>{sensorStats.crash_count}</span>
+          </div>
+          <div className="sensor-row">
+            <span className="sensor-row__icon">🍺</span>
+            <span className="sensor-row__label">Alcohol</span>
+            <span className="sensor-row__count" style={{color: 'var(--accent-purple)'}}>{sensorStats.alcohol_count}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Card 3: Battery Level */}
+      {/* Card 3: Risk Level */}
+      <div className={`status-card status-card--risk ${maxRisk >= 70 ? 'status-card--battery-low' : ''}`}>
+        <div className="status-card__header">
+          <span className="status-card__label">Risk Level</span>
+          <div className="status-card__icon">🧠</div>
+        </div>
+        <div className="status-card__value" style={{ color: riskColor }}>
+          {avgRisk}<span style={{ fontSize: '14px', fontWeight: 400 }}> / 100</span>
+        </div>
+        {/* Risk bar */}
+        <div className="battery-visual">
+          <div className="battery-visual__shell">
+            <div
+              className="battery-visual__fill"
+              style={{
+                width: maxRisk > 0 ? `${maxRisk}%` : '0%',
+                background: riskColor,
+              }}
+            />
+          </div>
+        </div>
+        <div className="status-card__sub">
+          Peak: {maxRisk} — {riskLabel}
+        </div>
+      </div>
+
+      {/* Card 4: Battery Level */}
       <div className={`status-card status-card--battery ${batteryLevel !== null && batteryLevel <= 25 ? 'status-card--battery-low' : ''}`}>
         <div className="status-card__header">
           <span className="status-card__label">Helmet Battery</span>
@@ -85,7 +128,6 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
           {batteryDisplay}
           {batteryLevel !== null && <span style={{ fontSize: '16px', fontWeight: 400 }}>%</span>}
         </div>
-        {/* Visual battery bar */}
         <div className="battery-visual">
           <div className="battery-visual__shell">
             <div
@@ -106,7 +148,7 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
         </div>
       </div>
 
-      {/* Card 4: Devices */}
+      {/* Card 5: Devices */}
       <div className="status-card status-card--device">
         <div className="status-card__header">
           <span className="status-card__label">Devices</span>
@@ -116,7 +158,7 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
         <div className="status-card__sub">{deviceLabel}</div>
       </div>
 
-      {/* Card 5: System Status with Heartbeat */}
+      {/* Card 6: System Status with Heartbeat */}
       <div className="status-card status-card--uptime">
         <div className="status-card__header">
           <span className="status-card__label">System</span>
@@ -129,7 +171,6 @@ export default function StatusCards({ alerts, isOnline, batteryLevel }) {
           </div>
         </div>
         <div className="status-card__sub">Uptime: {formatUptime(uptime)}</div>
-        {/* SVG Heartbeat line */}
         {isOnline && (
           <div className="heartbeat-wave">
             <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="heartbeat-svg">
