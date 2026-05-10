@@ -33,7 +33,7 @@ import random
 # ==================== APP SETUP ===============================
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://smarthelmet-six.vercel.app"}})  # Allow cross-origin requests from any frontend
+CORS(app)  # Allow cross-origin requests from any frontend
 
 # In-memory storage for alerts (simple list)
 alerts = []
@@ -326,9 +326,11 @@ def _log_sos(alert_or_sos):
 # ==================== RUN SERVER ==============================
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
     print("=" * 50)
     print("  SmartHelm v2.0 Backend Server")
     print("  Multi-Sensor Fusion (Horn+Crash+Alcohol)")
-    print("  http://localhost:5000")
+    print(f"  http://localhost:{port}")
     print("=" * 50)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)
