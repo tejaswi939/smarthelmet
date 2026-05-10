@@ -1173,8 +1173,9 @@ body::before {
   .navbar__controls {
     width: 100%;
     display: flex;
-    justify-content: space-between;
-    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
     order: 2;
   }
   .navbar__battery {
@@ -1212,10 +1213,10 @@ body::before {
     margin-bottom: 20px;
   }
 
-  /* -- Status Cards: 2 columns -- */
+  /* -- Status Cards: 1 column on tablet portrait/mobile -- */
   .status-cards {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
     margin-bottom: 24px;
   }
   .status-card {
@@ -1272,23 +1273,64 @@ body::before {
     grid-column: 1 / -1;
   }
 
-  /* -- Alert Table: Horizontal scroll -- */
+  /* -- Alert Table: Card layout -- */
   .alert-list {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .alert-list__table, 
+  .alert-list__table thead, 
+  .alert-list__table tbody, 
+  .alert-list__table th, 
+  .alert-list__table td, 
+  .alert-list__table tr {
+    display: block;
+    width: 100%;
+  }
+  .alert-list__table thead tr {
+    display: none;
+  }
+  .alert-list__table tbody tr {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
     border-radius: 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    padding: 16px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
-  .alert-list__table {
-    min-width: 700px;
+  .alert-list__table tbody tr.row--sos {
+    border-left: 4px solid var(--accent-red);
   }
-  .alert-list__table th,
   .alert-list__table td {
-    padding: 10px 10px;
-    font-size: 11px;
-    white-space: nowrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: right;
+    white-space: normal;
+  }
+  .alert-list__table td:last-child {
+    border-bottom: none;
+  }
+  .alert-list__table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+    margin-right: 16px;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  .intensity-bar {
+    width: 150px;
+    justify-content: flex-end;
   }
   .intensity-bar__track {
-    max-width: 50px;
+    max-width: 100px;
   }
 
   /* -- Crisis mode -- */
@@ -1317,7 +1359,8 @@ body::before {
     font-size: 15px;
   }
   .navbar__controls {
-    gap: 5px;
+    gap: 8px;
+    justify-content: center;
   }
   .btn--mute {
     padding: 5px 10px;
@@ -1339,7 +1382,7 @@ body::before {
   /* -- Status Cards: single column -- */
   .status-cards {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
   }
   .status-card {
     padding: 14px;
@@ -1372,14 +1415,6 @@ body::before {
   }
 
   /* -- Alert Table -- */
-  .alert-list__table {
-    min-width: 600px;
-  }
-  .alert-list__table th,
-  .alert-list__table td {
-    padding: 8px 8px;
-    font-size: 10px;
-  }
   .badge {
     padding: 3px 8px;
     font-size: 10px;

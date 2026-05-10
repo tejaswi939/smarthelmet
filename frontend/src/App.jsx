@@ -22,8 +22,9 @@ import Navbar from './components/Navbar';
 import StatusCards from './components/StatusCards';
 import AlertList from './components/AlertList';
 
-// Backend URL — adjust if your server runs on a different port
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Backend URL — Uses Vercel environment variable, or falls back to the current hostname for local Wi-Fi testing
+const API_BASE = import.meta.env.VITE_API_URL;
+fetch(`${API_URL}/api/data`)
 
 export default function App() {
   const [alerts, setAlerts] = useState([]);

@@ -123,19 +123,19 @@ export default function AlertList({ alerts }) {
                 `}
               >
                 {/* Alert ID */}
-                <td style={{ color: '#64748b', fontWeight: 600 }}>
+                <td data-label="#" style={{ color: '#64748b', fontWeight: 600 }}>
                   {alert.id}
                 </td>
 
                 {/* Type Badge */}
-                <td>
+                <td data-label="Type">
                   <span className={`badge ${typeBadge.className}`}>
                     {typeBadge.label}
                   </span>
                 </td>
 
                 {/* Intensity with visual bar */}
-                <td>
+                <td data-label="Intensity">
                   <div className="intensity-bar">
                     <span style={{ fontWeight: 600, minWidth: '50px' }}>
                       {alert.intensity_db} dB
@@ -150,14 +150,14 @@ export default function AlertList({ alerts }) {
                 </td>
 
                 {/* Risk Score */}
-                <td>
+                <td data-label="Risk">
                   <span className={`severity-badge ${getRiskClass(risk)}`}>
                     {risk} — {getRiskLabel(risk)}
                   </span>
                 </td>
 
                 {/* Sensor Data Summary */}
-                <td>
+                <td data-label="Sensors">
                   <div className="sensor-cell">
                     {alert.accel_g > 0 && (
                       <span className="sensor-chip sensor-chip--accel" title="Acceleration (g)">
@@ -176,7 +176,7 @@ export default function AlertList({ alerts }) {
                 </td>
 
                 {/* GPS Location */}
-                <td>
+                <td data-label="Location">
                   {alert.lat && alert.lng ? (
                     <a
                       className="gps-link"
@@ -192,17 +192,17 @@ export default function AlertList({ alerts }) {
                 </td>
 
                 {/* Battery Level */}
-                <td>
+                <td data-label="Battery">
                   {getBatteryCell(alert.battery_level)}
                 </td>
 
                 {/* Device ID */}
-                <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                <td data-label="Device" style={{ fontFamily: 'monospace', fontSize: '12px' }}>
                   {alert.device_id}
                 </td>
 
                 {/* Timestamp */}
-                <td style={{ fontSize: '13px' }}>
+                <td data-label="Timestamp" style={{ fontSize: '13px' }}>
                   {formatTime(alert.timestamp)}
                 </td>
               </tr>
